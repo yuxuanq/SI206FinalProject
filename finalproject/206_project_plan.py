@@ -75,7 +75,6 @@ def create_course_table():
         cur.execute(statement, course)
     conn.commit()
 
-create_course_table()
 
 def get_salary_info():
     salary_info = []
@@ -104,7 +103,23 @@ def create_salary_table():
             statement = 'INSERT OR IGNORE INTO Salary VALUES (?, ?, ?, ?)'
             cur.execute(statement, salary)
     conn.commit()
-create_salary_table()
+
+def get_people_info():
+    people_info = []
+    soup = BeautifulSoup(people_content, "html.parser")
+    content = soup.find_all('div', {"class": "person row"})
+    for people in content:
+        name = BeautifulSoup(str(people.find_all('a', {"class": "name themeText themeLink"})),
+                             "html.parser").text.lstrip("[").rstrip("]")
+        first_name = re.findall(r'[A-z]+', name)[0]
+        last_name = re.findall(r'[A-z]+', name)[-1]
+        mail = BeautifulSoup(str(people.find_all('span', {"class": "email"})), "html.parser").text.lstrip("[").rstrip(
+            "]")
+        title = BeautifulSoup(str(people.find_all('span', {"class": "title"})), "html.parser").text.lstrip("[").rstrip(
+            "]")
+        people_tuple = (mail, name, first_name, last_name, title)
+        people_info.append(people_tuple)
+    return people_info
 
 def create_people_table():
     cur.execute('DROP TABLE IF EXISTS People')
@@ -112,23 +127,39 @@ def create_people_table():
     table_spec += 'People (email TEXT PRIMARY KEY, name TEXT, first_name TEXT, last_name TEXT,'
     table_spec += 'title TEXT)'
     cur.execute(table_spec)
-
-    soup = BeautifulSoup(people_content, "html.parser")
-    content = soup.find_all('div', {"class":"person row"})
-    for people in content:
-        name = BeautifulSoup(str(people.find_all('a', {"class":"name themeText themeLink"})),"html.parser").text.lstrip("[").rstrip("]")
-        first_name = re.findall(r'[A-z]+', name)[0]
-        last_name = re.findall(r'[A-z]+', name)[-1]
-        mail = BeautifulSoup(str(people.find_all('span', {"class":"email"})),"html.parser").text.lstrip("[").rstrip("]")
-        title = BeautifulSoup(str(people.find_all('span', {"class":"title"})),"html.parser").text.lstrip("[").rstrip("]")
-        people_info = (mail, name, first_name, last_name, title)
+    for people in get_people_info():
         statement = 'INSERT OR IGNORE INTO People VALUES (?, ?, ?, ?, ?)'
-        cur.execute(statement, people_info)
+        cur.execute(statement, people)
     conn.commit()
+
 create_people_table()
+create_course_table()
+create_salary_table()
+
 
 class course():
     subject = "MATH"
+    all_courses = get_course_info()
+
     def __init__(self, num):
+        self.sections = {}
+        for course in self.all_courses:
+            if course[0][0:3] == str(num):
+                section = course[0][3:]
+                instructor = [course[3], course[4]]
+                self.sections[section] = instructor
+
+    def get_all_sec(self):
+        return self.sections
+
+    def get_all_instructor(self):
+        instructors = []
+        for sec in self.sections.keys():
+            instructors.append(self.sections[sec][0])
+        return instructors
+
+    def get_total_sec(self):
+        return len(list(self.sections.keys()))
+
 
 # # Write your test ses here.
