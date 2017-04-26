@@ -222,8 +222,65 @@ def sort_salary():
     return sorted_s
 
 
-def more_than_15k():
+def more_than_15k(num = 150000):
     salary = [int(str(i[-1][:-3]).replace(",", "")) for i in inst_s]
-    return len(list(filter(lambda salary: salary > 150000, salary)))
+    return len(list(filter(lambda salary: salary > num, salary)))
 
 
+# Write your test ses here.
+class CourseTest(unittest.TestCase):
+    def test_sec1(self):
+        math116 = Course(116)
+        self.assertEqual(type(math116.get_all_sec()), type({}))
+
+    def test_sec2(self):
+        math571 = Course(571)
+        self.assertEqual(len(math571.get_all_sec()), 1)
+
+    def test_instructor(self):
+        math575 = Course(575)
+        self.assertEqual(type(math575.get_all_instructor()), type([]))
+
+    def test_instructor2(self):
+        math575 = Course(575)
+        self.assertEqual(math575.get_all_instructor()[0], "Kartik Prasanna")
+
+    def test_total_sec(self):
+        math116 = Course(116)
+        self.assertEqual(type(math116.get_total_sec()), type(1))
+
+    def test_total_sec2(self):
+        math116 = Course(116)
+        self.assertEqual(math116.get_total_sec(), 41)
+
+
+class InstructorTest(unittest.TestCase):
+    def test_name(self):
+        DeBacker = Instructor("smdbackr@umich.edu")
+        self.assertEqual(DeBacker.get_name(), "Stephen DeBacker")
+
+    def test_title(self):
+        Keller = Instructor("ckell@umich.edu")
+        self.assertEqual(Keller.get_title(), "Donald J. Lewis Research Post-Doctoral Assistant Professor")
+
+    def test_course(self):
+        Roman = Instructor("romanv@umich.edu")
+        self.assertEqual(len(Roman.get_course()), 2)
+
+    def test_salary(self):
+        Roger = Instructor("rogernat@umich.edu")
+        self.assertEqual(Roger.get_salary(), "100,724.57")
+
+
+class other_func(unittest.TestCase):
+    def test_distinct(self):
+        self.assertEqual(type(distinct_course_num()), type(set()))
+
+    def test_sort(self):
+        self.assertEqual(sort_salary()[0] < sort_salary()[-1], True)
+
+    def test_15k(self):
+        self.assertEqual(more_than_15k(), 9)
+
+
+unittest.main(verbosity=2)
