@@ -6,8 +6,10 @@ import unittest
 import json
 import sqlite3
 from bs4 import BeautifulSoup
-import requests
 import re
+import requests
+
+
 try:
     COURSE_CACHE_FNAME = "math.json"
     course_file = open(COURSE_CACHE_FNAME, 'r')
@@ -16,7 +18,7 @@ try:
     course_content = json.loads(content)
 
 except:
-    print("Please excute the following command: scrapy crawl math -o math.json")
+    print("IMPORTANT: See README file for instruction to run")
 
 PEOPLE_CACHE_FNAME = "people.html"
 try:
@@ -44,11 +46,13 @@ except:
 
 conn = sqlite3.connect('final_project.db')
 cur = conn.cursor()
+
+
 def get_course_info():
     course_info = []
     for course in course_content:
-        course_num = re.findall(r'[0-9]+',course["course_name"])[0]
-        sec = re.findall(r'Section [0-9]+ \([A-Z]+\)',course["sec"][0])[0]
+        course_num = re.findall(r'[0-9]+', course["course_name"])[0]
+        sec = re.findall(r'Section [0-9]+ \([A-Z]+\)', course["sec"][0])[0]
         if len(course["instructor"]) > 0:
             name = course["instructor"][0]
             last_name = re.findall(r'[A-z]+\-*[A-z]*', name)[0]
@@ -58,10 +62,11 @@ def get_course_info():
             last_name = ""
             first_name = ""
             email = ""
-        full_name = first_name+" "+last_name
-        course_tuple = (course_num+sec, first_name, last_name, full_name, email)
+        full_name = first_name + " " + last_name
+        course_tuple = (course_num + sec, first_name, last_name, full_name, email)
         course_info.append(course_tuple)
     return course_info
+
 
 def create_course_table():
     cur.execute('DROP TABLE IF EXISTS Course')
@@ -93,6 +98,7 @@ def get_salary_info():
             salary_info.append(salary_tuple)
     return salary_info
 
+
 def create_salary_table():
     cur.execute('DROP TABLE IF EXISTS Salary')
     table_spec = 'CREATE TABLE IF NOT EXISTS '
@@ -100,9 +106,10 @@ def create_salary_table():
     table_spec += 'last_name TEXT, salary INTEGER)'
     cur.execute(table_spec)
     for salary in get_salary_info():
-            statement = 'INSERT OR IGNORE INTO Salary VALUES (?, ?, ?, ?)'
-            cur.execute(statement, salary)
+        statement = 'INSERT OR IGNORE INTO Salary VALUES (?, ?, ?, ?)'
+        cur.execute(statement, salary)
     conn.commit()
+
 
 def get_people_info():
     people_info = []
@@ -117,9 +124,10 @@ def get_people_info():
             "]")
         title = BeautifulSoup(str(people.find_all('span', {"class": "title"})), "html.parser").text.lstrip("[").rstrip(
             "]")
-        people_tuple = (mail, name, first_name, last_name, title)
+        people_tuple = (mail.strip(), name, first_name, last_name, title)
         people_info.append(people_tuple)
     return people_info
+
 
 def create_people_table():
     cur.execute('DROP TABLE IF EXISTS People')
@@ -132,13 +140,15 @@ def create_people_table():
         cur.execute(statement, people)
     conn.commit()
 
+
 create_people_table()
 create_course_table()
 create_salary_table()
 
 
-class course():
-    subject = "MATH"
+class Course():
+    department = "MATH"
+    semester = "2017Fall"
     all_courses = get_course_info()
 
     def __init__(self, num):
@@ -162,4 +172,58 @@ class course():
         return len(list(self.sections.keys()))
 
 
-# # Write your test ses here.
+query_inst_s = "SELECT Course.full_name, Course.email, Salary.salary FROM Course INNER JOIN Salary on Salary.last_name = Course.last_name"
+cur.execute(query_inst_s)
+inst_s = cur.fetchall()
+
+query_inst_t = "SELECT People.name, People.title, People.email FROM People INNER JOIN Course on Course.email = People.email"
+cur.execute(query_inst_t)
+inst_t = cur.fetchall()
+
+
+class Instructor():
+    department = "MATH"
+
+    def __init__(self, email):
+        for inst in inst_t:
+            if email == inst[2]:
+                self.title = inst[1]
+                self.name = inst[0]
+                self.email = email
+
+    def get_name(self):
+        return self.name
+
+    def get_title(self):
+        return self.title
+
+    def get_salary(self):
+        for inst in inst_s:
+            if self.email == inst[1]:
+                return inst[2]
+
+    def get_course(self):
+        all_courses = get_course_info()
+        courses = [i[0] for i in all_courses if i[-1] == self.email]
+        return courses
+
+
+def distinct_course_num():
+    query = "SELECT DISTINCT course from Course"
+    cur.execute(query)
+    sections = cur.fetchall()
+    nums = set([str(i[0])[0:3] for i in sections])
+    return nums
+
+
+def sort_salary():
+    to_num = set([(i[0], int(str(i[-1][:-3]).replace(",", ""))) for i in inst_s])
+    sorted_s = sorted(to_num, key=lambda salary: salary[1])
+    return sorted_s
+
+
+def more_than_15k():
+    salary = [int(str(i[-1][:-3]).replace(",", "")) for i in inst_s]
+    return len(list(filter(lambda salary: salary > 150000, salary)))
+
+
